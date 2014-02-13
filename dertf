@@ -1,0 +1,2 @@
+#!/bin/bash
+unrtf -n --text "$1" | awk "NR == 1, /-----------------/ { next } { print }" | recode iso8859-1..utf-8

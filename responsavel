@@ -1,0 +1,3 @@
+#!/bin/bash
+#(dertf $1 | grep -oP 'JOD/\K([^/]*)' && echo $1 | grep -o $PROCESSO) | awk '{for (i=1;i<NF;i++) { print $NF"\t"$i }}'
+echo $1 | grep -o $PROCESSO | tr '\n' '\t' && dertf $1 | grep -oP 'JOD/\K([^/]*)'
