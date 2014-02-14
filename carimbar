@@ -1,23 +1,12 @@
 #!/usr/bin/env bash
 
-BLANK=$(mktemp)
-
-cat << SINGLE > $BLANK
-%PDF-
-1 0 obj<</MediaBox[0 0 595.22 842]>>endobj
-2 0 obj<</Kids[1 0 R]>>endobj
-trailer<</Root<</Pages 2 0 R>>>>
-SINGLE
-
 pluristamp () {
 	[[ $1 ]] && pdftk "$1" multistamp - output - | pluristamp "${@:2}" || cat
 }
 
-barcode -umm -p a4 -g 45x1.3+158.5+246 -e 128 -n -b \
-        $(printf "%020d" $(basename $1 | tr -cd '[[:digit:]]')) | \
-    ps2pdf - - | \
-    pluristamp "${@:2}" | \
-   	pdftk A=- B=$BLANK cat A1 B1 output - | \
-    pdftk "$1" multistamp - output "${1%*.[Pp][Dd][Ff]}"_.pdf
+data_barcode=$(printf "%020d" $(basename $1 | tr -cd '[[:digit:]]'))
 
-rm $BLANK
+barcode -umm -p a4 -g 45x1.3+158.5+246 -e 128 -n -b $data_barcode | \
+ps2pdf - - | \
+pluristamp "${@:2}" | \
+pdftk "$1" multistamp - output -
