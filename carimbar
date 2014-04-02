@@ -1,7 +1,31 @@
 #!/usr/bin/env bash
 
-BLANK=$(mktemp)
+while getopts "p:f:d:" opt; do
+	case $opt in
+		p) # -p <nome do arquivo a receber os carimbos>
+			FILENAME="$OPTARG" ;;
+		f) # -f <nome do formulário>: um formulário pdf com um campo de texto
+			FORMFILE="$OPTARG" ;;
+		d) # -d <texto de preenchimento>: se fornecido, será colocado no campo AM do formulário
+			DATA=$(echo "$OPTARG"| sed -e 's/^ *//' -e 's/ *$//' -e 's/ *; */;/g' | recode utf8..windows-1252) ;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+			;;
+		:)
+			echo "Option -$OPTARG requires an argument." >&2
+			exit 1
+			;;
+	esac
+done
 
+shift $((OPTIND-1)) # mass-arguments: todos os argumentos no final serão usados como arquivo de carimbo
+
+# arquivos temposários utilizados pelo script
+BLANK=$(mktemp)
+FORM=$(mktemp)
+FDF=$(mktemp)
+
+# pdf em branco de uma única página
 cat <<- SINGLE > $BLANK
 	%PDF-
 	1 0 obj<</MediaBox[0 0 595.22 842]>>endobj
@@ -9,20 +33,47 @@ cat <<- SINGLE > $BLANK
 	trailer<</Root<</Pages 2 0 R>>>>
 SINGLE
 
+# fdf em branco para o campo AM
+cat <<- SINGLE > $FDF
+	%FDF-1.2
+	1 0 obj<</FDF<</Fields[<</T(AM)/V(* ${DATA//;/
+* })>>]>>>>
+	endobj
+	trailer<</Root 1 0 R>>
+SINGLE
+
+# carimbador recursivo
 pluristamp () {
-	[[ "$1" ]] && pdftk "$1" multistamp - output - | pluristamp "${@:2}" || cat
+	if [[ "$1" ]]; then
+		pdftk "$1" multistamp - output - | pluristamp "${@:2}"
+	else
+		cat
+	fi
 }
 
-data_barcode=$(basename $1 | tr -cd '[[:digit:]]' | sed -e :a -e 's/^.\{1,19\}$/0&/;ta')
+# preenche o formulário e achata sua estrutura
+# para manter o fluxo, aplica o que vier de input como carimbo
+fillform () {
+	if [[ -n "$DATA" ]]; then
+		pdftk "$FORMFILE" fill_form "$FDF" output "$FORM" flatten
+		pdftk "$FORM" multistamp - output -
+	else
+		cat
+	fi
+}
 
-barcode -umm -p a4 -g 45x1.3+158.5+246 -e 128 -n -b $data_barcode |
+data_barcode=$(basename "$FILENAME" | tr -cd '[[:digit:]]' | sed -e :a -e 's/^.\{1,19\}$/0&/;ta')
+
+barcode -umm -p a4 -g 45x1.3+158.5+246 -e 128 -n -b "$data_barcode" |
 ps2pdf - - |
-pluristamp "${@:2}" |
+fillform |
+pluristamp $@ |
 pdftk A=- B=$BLANK cat A1 B1 output - |
-pdftk "$1" multistamp - output -
+pdftk "$FILENAME" multistamp - output -
+
 RET=$?
 
-rm $BLANK
+# remover os temporários ao sair
+rm $BLANK $FDF $FORM
 
 exit $RET
-
