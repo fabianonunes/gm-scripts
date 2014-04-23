@@ -1,2 +1,0 @@
-#!/bin/bash
-(cat $1 | grep -oP 'JOD/[^/]*/\K(.*)' | sed 's/[\/]/\t/g' | tr '\n' '\t' && echo $1 | grep -o $PROCESSO) | awk '{for (i=1;i<NF;i++) { print $NF"\t"$i }}'
