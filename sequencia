@@ -1,2 +1,19 @@
 #!/bin/bash
-(dertf $1 | grep -oP 'JOD/[^/]*/\K(.*)' | sed 's/[\/]/\t/g' | tr '\n' '\t' && echo $1 | grep -o $PROCESSO) | awk '{for (i=1;i<NF;i++) { print $NF"\t"$i }}'
+
+extension=${1:${#1}-3}
+processo=$(echo "$1" | grep -o $PROCESSO)
+
+case $extension in
+	pdf)
+		pdftotext "$1" - ;;
+	rtf)
+		dertf "$1" ;;
+	*)
+		cat "$1" ;;
+esac |
+ 	grep -aozP "(GMJD|JOD)\s*/\s*[a-z]{1,3}\s*\K(/\s*[a-z]{1,3})*" |
+  	sed 's/[\/]/\t/g' |
+	awk -v _p=$processo '
+		{ for (i=1;i<=NF;i++) print _p"\t"$i }
+		END { if(NR == 0) print _p"\t" }
+	'
