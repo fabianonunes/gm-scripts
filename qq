@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+grep -o $PROCESSO <([[ -t 0 ]] && ([[ "$1" ]] && cat "$@" || pbpaste) || cat) | sort -n | uniq | tr "\n" ";" | pbcopy
+notify-send -t 100 qq "$(pbpaste|grep -o ';' | wc -l) processos" --icon=dialog-information -u critical
+echo "$(pbpaste|grep -o ';' | wc -l) processos" > /dev/stderr

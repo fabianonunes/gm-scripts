@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+page_number_start=$(pdftk "$1" dump_data_utf8 |
+grep '^Bookmark\(Page\|Title\)' |
+sed 's/[^:]*:\s*//' |
+paste - - |
+grep "$2" | grep -o '[0-9]*$' | head -n1)
+
+pdftk "$1" cat "$page_number_start-end" output -
