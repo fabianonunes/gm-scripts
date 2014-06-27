@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-while getopts "p:f:d:" opt; do
+while getopts "p:f:d:t:" opt; do
 	case $opt in
 		p) # -p <nome do arquivo a receber os carimbos>
 			FILENAME="$OPTARG" ;;
@@ -8,6 +8,8 @@ while getopts "p:f:d:" opt; do
 			FORMFILE="$OPTARG" ;;
 		d) # -d <texto de preenchimento>: se fornecido, será colocado no campo AM do formulário
 			DATA=$(echo "$OPTARG"| sed -e 's/^ *//' -e 's/ *$//' -e 's/ *; */;/g' | recode utf8..windows-1252) ;;
+		t) # -t <nome do timbre>: uma stamp que será utilizada em todas as páginas
+			STAMPFILE="$OPTARG" ;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
 			;;
@@ -62,6 +64,16 @@ fillform () {
 	fi
 }
 
+# uma stamp que será colocada em todas as páginas.
+# utilizado geralmente para o timbre
+timbre () {
+	if [[ -n "$STAMPFILE" ]]; then
+		pdftk - background "$STAMPFILE" output -
+	else
+		cat
+	fi
+}
+
 data_barcode=$(basename "$FILENAME" | tr -cd '[[:digit:]]' | sed -e :a -e 's/^.\{1,19\}$/0&/;ta')
 
 barcode -umm -p a4 -g 45x1.3+158.5+246 -e 128 -n -b "$data_barcode" |
@@ -69,7 +81,8 @@ ps2pdf - - |
 fillform |
 pluristamp $@ |
 pdftk A=- B=$BLANK cat A1 B1 output - |
-pdftk "$FILENAME" multistamp - output -
+pdftk "$FILENAME" multistamp - output - |
+timbre
 
 RET=$?
 
