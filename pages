@@ -6,8 +6,9 @@ echo "$1" > /dev/stderr
 grep '^Bookmark\(Page\|Title\)' |
 sed 's/[^:]*:\s*//' | paste - - |
 grep -vi 'Depósito Recursal' |
+grep -vi 'Protocolo' |
 grep -vi 'Custas' |
 grep -v "\\s\+0$" |
-awk -F \\t 'last_ ~ /'"$2"'/ {print $2 ; last_=""} /'"$2"'/ { print $2; last_=$0 }  END { if (last_ ~ /revista/) {print 100} }' |
+awk -F \\t 'last_ ~ /'"$2"'$/ {print $2 ; last_=""} /'"$2"'$/ { print $2; last_=$0 }  END { if (last_ ~ /revista/) {print 100} }' |
 paste -d"-" - - | bc
 #|awk '{sum+=-$0} END {print sum/NR}'
