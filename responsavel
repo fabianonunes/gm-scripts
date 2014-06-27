@@ -12,6 +12,6 @@ case $extension in
 	*)
 		cat "$1" ;;
 esac |
-	grep -ozP '(JOD|GMJD)\s*/\s*\K([a-z]{1,3})' |
+	grep -aozP '(JOD|GMJD)\s*/\s*\K([a-z]{1,3})' |
 	sed 's/[\/]/\t/g' | tr -d '\n'
 echo
